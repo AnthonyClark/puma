@@ -1,13 +1,7 @@
 #define RSTRING_NOT_MODIFIED 1
 
 #include <ruby.h>
-#include <ruby/version.h>
-
-#if RUBY_API_VERSION_MAJOR == 1
-#include <rubyio.h>
-#else
 #include <ruby/io.h>
-#endif
 
 #ifdef HAVE_OPENSSL_BIO_H
 
