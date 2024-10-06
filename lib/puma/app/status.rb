@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 require_relative '../json_serialization'
-require 'rack'
-require 'uri'
 
 module Puma
   module App
@@ -82,9 +80,9 @@ module Puma
 
       def authenticate(env)
         return true unless @auth_token
-        token = URI.decode_www_form(env['QUERY_STRING'].to_s).assoc('token')&.last
+        token = ::URI.decode_www_form(env['QUERY_STRING'].to_s).assoc('token')&.last
         return false unless token
-        Rack::Utils.secure_compare(token, @auth_token)
+        ::Rack::Utils.secure_compare(token, @auth_token)
       end
 
       def rack_response(status, body, content_type='application/json')
