@@ -129,6 +129,16 @@ public class Http11 extends RubyObject {
 
         while (vlen > 0 && Character.isWhitespace(buffer.get(value + vlen - 1))) vlen--;
 
+        // Count leading whitespace characters
+        int leadingSpaces = 0;
+        while (leadingSpaces < vlen && Character.isWhitespace(buffer.get(value + leadingSpaces))) {
+            leadingSpaces++;
+        }
+
+        // Adjust value and vlen for the ByteList creation
+        int finalValueStart = value + leadingSpaces;
+        int finalValueLen = vlen - leadingSpaces;
+
         if (b.equals(CONTENT_LENGTH_BYTELIST) || b.equals(CONTENT_TYPE_BYTELIST)) {
           f = RubyString.newString(runtime, b);
         } else {
@@ -136,7 +146,7 @@ public class Http11 extends RubyObject {
           f.cat(b);
         }
 
-        b = new ByteList(buffer, value, vlen);
+        b = new ByteList(buffer, finalValueStart, finalValueLen);
         v = req.fastARef(f);
         if (v == null || v.isNil()) {
             req.fastASet(f, RubyString.newString(runtime, b));

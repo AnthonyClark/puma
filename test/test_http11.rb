@@ -282,4 +282,38 @@ class Http11ParserTest < TestIntegration
 
     assert_equal "Valid\tValue", req['HTTP_DUMMY']
   end
+
+  def test_header_value_whitespace_stripping
+    parser = Puma::HttpParser.new
+
+    test_cases = [
+      { raw_value: " value", expected_value: "value", message: "Leading space" },
+      { raw_value: "\tvalue", expected_value: "value", message: "Leading tab" },
+      { raw_value: "value ", expected_value: "value", message: "Trailing space" },
+      { raw_value: "value\t", expected_value: "value", message: "Trailing tab" },
+      { raw_value: " value ", expected_value: "value", message: "Leading and trailing space" },
+      { raw_value: "\tvalue\t", expected_value: "value", message: "Leading and trailing tab" },
+      { raw_value: " \t value \t ", expected_value: "value", message: "Mixed leading and trailing whitespace" },
+      { raw_value: "abc def", expected_value: "abc def", message: "Internal spaces preserved" },
+      { raw_value: " \t ", expected_value: "", message: "All whitespace" },
+      { raw_value: "no_whitespace", expected_value: "no_whitespace", message: "No whitespace" },
+      { raw_value: "", expected_value: "", message: "Empty value" }
+    ]
+
+    test_cases.each do |tc|
+      req = {}
+      # Minimal headers needed for the parser to process the header value correctly.
+      # Host header is often expected, though not strictly necessary for this isolated test.
+      http = "GET / HTTP/1.1\r\nHost: example.com\r\nTest-Header: #{tc[:raw_value]}\r\n\r\n"
+      nread = parser.execute(req, http, 0)
+
+      assert nread == http.length, "Failed to parse full request for case: #{tc[:message]} ('#{tc[:raw_value]}')"
+      assert parser.finished?, "Parser didn't finish for case: #{tc[:message]} ('#{tc[:raw_value]}')"
+      assert !parser.error?, "Parser had error for case: #{tc[:message]} ('#{tc[:raw_value]}')"
+
+      assert_equal tc[:expected_value], req["HTTP_TEST_HEADER"], "Failed for case: #{tc[:message]} ('#{tc[:raw_value]}')"
+
+      parser.reset # Reset parser for the next iteration
+    end
+  end
 end

@@ -181,18 +181,38 @@ void http_field(puma_parser* hp, const char *field, size_t flen,
     f = rb_str_new(hp->buf, new_size);
   }
 
-  while (vlen > 0 && isspace(value[vlen - 1])) vlen--;
+  // Count leading whitespace characters
+  size_t leading_spaces = 0;
+  while (leading_spaces < vlen && isspace(value[leading_spaces])) {
+    leading_spaces++;
+  }
+
+  // Strip trailing whitespace characters
+  // This loop modifies vlen directly
+  while (vlen > 0 && isspace(value[vlen - 1])) {
+    vlen--;
+  }
+
+  const char *final_value_ptr = value + leading_spaces;
+  size_t final_vlen = 0;
+
+  if (vlen > leading_spaces) {
+    final_vlen = vlen - leading_spaces;
+  }
+  // If vlen <= leading_spaces, it means the string was all whitespace,
+  // or leading whitespace consumed everything after trailing removal.
+  // In this case, final_vlen remains 0, which is correct for an empty string.
 
   /* check for duplicate header */
   v = rb_hash_aref(hp->request, f);
 
   if (v == Qnil) {
-      v = rb_str_new(value, vlen);
+      v = rb_str_new(final_value_ptr, final_vlen);
       rb_hash_aset(hp->request, f, v);
   } else {
       /* if duplicate header, normalize to comma-separated values */
       rb_str_cat2(v, ", ");
-      rb_str_cat(v, value, vlen);
+      rb_str_cat(v, final_value_ptr, final_vlen);
   }
 }
 
